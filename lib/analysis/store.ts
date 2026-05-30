@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { AnalysisStatus, AnalysisStatusResponse, AnalysisViewResponse, ApiError } from "@/types/analysis";
 import { createApiError } from "@/lib/analysis/errors";
+import { NotionApiError } from "@/lib/notion/errors";
 import { OpenAiAnalysisError } from "@/lib/openai/analyze";
 import type { AnalyzeRequestInput } from "@/lib/validators/analysis";
 import { runAnalysisPipeline } from "./pipeline";
@@ -42,6 +43,8 @@ export async function createAnalysis(input: AnalyzeRequestInput) {
     const apiError =
       error instanceof OpenAiAnalysisError
         ? createApiError(error.code, error.message)
+        : error instanceof NotionApiError
+          ? createApiError(error.code, error.message)
         : createApiError("OPENAI_REQUEST_FAILED");
 
     analyses.set(analysisId, {
