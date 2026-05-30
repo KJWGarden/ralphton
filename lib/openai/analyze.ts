@@ -28,22 +28,25 @@ export async function generateAnalysisView(data: NormalizedNotionData): Promise<
   const client = new OpenAI({ apiKey: config.apiKey });
 
   try {
-    const response = await client.responses.create({
-      model: config.model,
-      instructions: analysisSystemPrompt,
-      input: createAnalysisUserPrompt(data),
-      text: {
-        format: {
-          type: "json_schema",
-          name: "analysis_view",
-          schema: analysisViewJsonSchema,
-          strict: true,
+    const response = await client.responses.create(
+      {
+        model: config.model,
+        instructions: analysisSystemPrompt,
+        input: createAnalysisUserPrompt(data),
+        text: {
+          format: {
+            type: "json_schema",
+            name: "analysis_view",
+            schema: analysisViewJsonSchema,
+            strict: true,
+          },
         },
+        max_output_tokens: 3500,
+        temperature: 0.2,
+        store: false,
       },
-      max_output_tokens: 3500,
-      temperature: 0.2,
-      store: false,
-    });
+      { timeout: 45000 },
+    );
 
     if (response.error) {
       throw new OpenAiAnalysisError(response.error.message, "OPENAI_REQUEST_FAILED");

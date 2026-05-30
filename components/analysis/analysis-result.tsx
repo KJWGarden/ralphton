@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GenerationPanel } from "@/components/generation/generation-panel";
 import { MindmapPreview } from "@/components/mindmap/mindmap-preview";
 import type { AnalysisViewResponse } from "@/types/analysis";
 
@@ -88,6 +89,8 @@ export function AnalysisResult({ loading, hasAnalysis, result }: AnalysisResultP
           </CardContent>
         </Card>
       </div>
+
+      <GenerationPanel analysisId={result.analysisId} nodes={result.mindmap.nodes} />
     </section>
   );
 }

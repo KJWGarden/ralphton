@@ -42,12 +42,17 @@ export const analysisViewSchema = z.object({
   ),
   mindmap: z.object({
     nodes: z.array(
-      z.object({
-        id: z.string().min(1),
-        label: z.string().min(1),
-        type: z.enum(["root", "topic", "detail"]),
-      }),
-    ),
+        z.object({
+          id: z.string().min(1),
+          label: z.string().min(1),
+          type: z.enum(["root", "topic", "detail"]),
+          sourceId: z.string().optional(),
+          notionPageId: z.string().optional(),
+          url: z.string().optional(),
+          summary: z.string().optional(),
+          keywords: z.array(z.string()).optional(),
+        }),
+      ),
     edges: z.array(
       z.object({
         from: z.string().min(1),

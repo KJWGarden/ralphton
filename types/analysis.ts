@@ -60,6 +60,11 @@ export type MindmapNode = {
   id: string;
   label: string;
   type: MindmapNodeType;
+  sourceId?: string;
+  notionPageId?: string;
+  url?: string;
+  summary?: string;
+  keywords?: string[];
 };
 
 export type MindmapEdge = {

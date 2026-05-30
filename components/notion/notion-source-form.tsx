@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getDefaultAnalyzeRequest } from "@/lib/analysis/default-source";
 import type { AnalyzeRequest } from "@/types/analysis";
 
 const formSchema = z.object({
@@ -23,6 +24,7 @@ type NotionSourceFormProps = {
 };
 
 export function NotionSourceForm({ pending, onSubmit }: NotionSourceFormProps) {
+  const defaultRequest = getDefaultAnalyzeRequest();
   const {
     register,
     handleSubmit,
@@ -31,8 +33,8 @@ export function NotionSourceForm({ pending, onSubmit }: NotionSourceFormProps) {
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      sourceType: "page",
-      sourceId: "sample-page-id",
+      sourceType: defaultRequest.sourceType,
+      sourceId: defaultRequest.sourceType === "page" ? defaultRequest.pageId : defaultRequest.dataSourceId,
       includePageContent: false,
     },
   });
