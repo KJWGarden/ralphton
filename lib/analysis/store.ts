@@ -16,22 +16,17 @@ type AnalysisRecord = {
 
 const analyses = new Map<string, AnalysisRecord>();
 
-export async function createAnalysis(input: AnalyzeRequestInput) {
-  const analysisId = `analysis_${randomUUID()}`;
-  const timestamp = new Date().toISOString();
-
-  analyses.set(analysisId, {
-    status: "processing",
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
-
+async function processAnalysis(
+  analysisId: string,
+  input: AnalyzeRequestInput,
+  createdAt: string,
+) {
   try {
     const view = await runAnalysisPipeline(input);
 
     analyses.set(analysisId, {
       status: "completed",
-      createdAt: timestamp,
+      createdAt,
       updatedAt: new Date().toISOString(),
       view: {
         analysisId,
@@ -45,15 +40,28 @@ export async function createAnalysis(input: AnalyzeRequestInput) {
         ? createApiError(error.code, error.message)
         : error instanceof NotionApiError
           ? createApiError(error.code, error.message)
-        : createApiError("OPENAI_REQUEST_FAILED");
+          : createApiError("OPENAI_REQUEST_FAILED");
 
     analyses.set(analysisId, {
       status: "failed",
-      createdAt: timestamp,
+      createdAt,
       updatedAt: new Date().toISOString(),
       error: apiError,
     });
   }
+}
+
+export function createAnalysis(input: AnalyzeRequestInput) {
+  const analysisId = `analysis_${randomUUID()}`;
+  const timestamp = new Date().toISOString();
+
+  analyses.set(analysisId, {
+    status: "processing",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
+
+  void processAnalysis(analysisId, input, timestamp);
 
   return {
     analysisId,

@@ -72,7 +72,17 @@ function GenerationPreview({ generation }: { generation: GenerationResponse }) {
 
 export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
   const selectedNodeIds = useMindmapStore((state) => state.selectedNodeIds);
-  const selectedNodes = nodes.filter((node) => selectedNodeIds.includes(node.id));
+  const focusedNodeId = useMindmapStore((state) => state.focusedNodeId);
+  const fallbackNode = nodes.find((node) => node.sourceId || node.url) ?? nodes[0];
+  const activeNodeIds =
+    selectedNodeIds.length > 0
+      ? selectedNodeIds
+      : focusedNodeId
+        ? [focusedNodeId]
+        : fallbackNode
+          ? [fallbackNode.id]
+          : [];
+  const selectedNodes = nodes.filter((node) => activeNodeIds.includes(node.id));
   const createGeneration = useCreateGeneration();
   const [format, setFormat] = useState<GenerationFormat>("ppt");
   const [tone, setTone] = useState<GenerationTone>("professional");
@@ -85,7 +95,7 @@ export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
     createGeneration.mutate(
       {
         analysisId,
-        nodeIds: selectedNodeIds,
+        nodeIds: activeNodeIds,
         format,
         tone,
         useImage,
@@ -196,7 +206,7 @@ export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
           />
         </div>
 
-        <Button className="w-full gap-2" disabled={selectedNodeIds.length === 0 || createGeneration.isPending} onClick={submit}>
+        <Button className="w-full gap-2" disabled={activeNodeIds.length === 0 || createGeneration.isPending} onClick={submit}>
           {createGeneration.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
           Create draft
         </Button>
