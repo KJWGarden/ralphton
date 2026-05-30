@@ -1,0 +1,500 @@
+**PRD: Notion 데이터 기반 AI 화면 정리 API**
+
+**1. 목표**
+
+Notion에 이미 존재하는 페이지 또는 데이터베이스 데이터를 가져와 OpenAI API로 정리하고, 프론트엔드에서 바로 렌더링 가능한 JSON으로 제공한다.
+
+핵심 목표는 사용자가 Notion 원문 전체를 읽지 않아도, 한 화면에서 핵심 내용과 구조를 빠르게 파악하게 하는 것이다.
+
+**2. 핵심 방향**
+
+OpenAI 프롬프트에는 Notion 원본 JSON을 그대로 넣지 않는다.
+
+대신 서버에서 Notion 데이터를 먼저 정규화한 뒤, 필요한 텍스트와 계층 구조만 OpenAI API에 전달한다.
+
+```text
+Notion 원본 데이터
+→ 서버 정규화
+→ 정규화된 Notion 데이터
+→ OpenAI API
+→ 화면 표시용 JSON
+→ 프론트 렌더링
+```
+
+**3. 사용자 흐름**
+
+```mermaid
+flowchart TD
+  A["사용자: Notion 페이지 또는 DB 선택"] --> B["백엔드: Notion API 호출"]
+  B --> C["백엔드: 페이지/DB 데이터 수집"]
+  C --> D["백엔드: 블록/속성 정규화"]
+  D --> E{"데이터 길이 확인"}
+  E -->|짧음| F["OpenAI API 한 번 호출"]
+  E -->|김| G["섹션별 분할 요약"]
+  G --> H["최종 통합 요약"]
+  F --> I["화면용 JSON 생성"]
+  H --> I
+  I --> J["프론트: 카드/섹션/마인드맵 표시"]
+```
+
+**4. MVP 범위**
+
+포함:
+
+- Notion Internal Connection 연동
+- Notion 페이지 1개 가져오기
+- Notion 페이지 본문 블록 재귀 수집
+- Notion data source 항목 조회
+- Notion 블록 정규화
+- OpenAI API를 통한 화면용 JSON 생성
+- 분석 결과 조회 API
+- 프론트가 바로 사용할 수 있는 카드/섹션/마인드맵 데이터 제공
+
+제외:
+
+- Mindmap.so 연동
+- Notion에 다시 쓰기
+- 실시간 Notion 변경 감지
+- OAuth 기반 다중 사용자 설치
+- 고급 권한 관리
+- Notion 전체 워크스페이스 검색
+
+**5. 공식 API 기준**
+
+Notion 페이지 속성 조회:
+
+```http
+GET /v1/pages/{page_id}
+```
+
+이 API는 페이지 속성 중심이며 본문 전체를 가져오지 않는다. 본문은 block children API로 가져와야 한다.
+
+Notion 페이지 본문 조회:
+
+```http
+GET /v1/blocks/{block_id}/children
+```
+
+`has_children`이 true인 블록은 같은 API를 재귀적으로 호출한다.
+
+Notion DB/data source 조회:
+
+```http
+POST /v1/data_sources/{data_source_id}/query
+```
+
+긴 결과 목록은 `has_more`, `next_cursor` 기반으로 페이지네이션한다.
+
+참고 문서:
+
+- [Retrieve a page](https://developers.notion.com/reference/retrieve-a-page)
+- [Retrieve block children](https://developers.notion.com/reference/get-block-children)
+- [Query a data source](https://developers.notion.com/reference/query-a-data-source)
+- [Internal connections](https://developers.notion.com/guides/get-started/internal-connections)
+
+**6. Notion API 연동 방식**
+
+MVP에서는 Internal Connection을 사용한다.
+
+설정 절차:
+
+1. Notion Developer/Creator dashboard에서 Internal Connection 생성
+2. 권한 설정
+   - `Read content`
+   - 필요 시 `Read property`
+3. `Installation access token` 발급
+4. 서버 환경변수에 저장
+
+```env
+NOTION_TOKEN=secret_xxxxxxxxx
+NOTION_VERSION=2026-03-11
+OPENAI_API_KEY=sk_xxxxxxxxx
+```
+
+5. 가져올 Notion 페이지 또는 DB에서 connection 추가
+
+```text
+Notion 페이지 우측 상단 ...
+→ Connections
+→ Add connection
+→ 생성한 integration 선택
+```
+
+주의:
+
+- connection을 페이지/DB에 추가하지 않으면 API에서 접근 불가
+- Notion token은 프론트엔드에 노출하지 않음
+- 모든 Notion API 호출은 백엔드에서만 수행
+
+**7. 데이터 수집 로직**
+
+페이지 분석 시:
+
+```text
+1. pageId 입력
+2. pages.retrieve(pageId) 호출
+3. blocks.children.list(pageId) 호출
+4. has_children 블록 재귀 수집
+5. 블록 타입별 텍스트 추출
+6. 정규화된 Notion 데이터 생성
+```
+
+DB 분석 시:
+
+```text
+1. dataSourceId 입력
+2. dataSources.query(dataSourceId) 호출
+3. page 목록 수집
+4. 각 page의 properties 정규화
+5. 필요 시 각 page 본문도 재귀 수집
+6. 정규화된 Notion 데이터 생성
+```
+
+**8. 정규화 데이터 구조**
+
+OpenAI에 넘기는 데이터는 아래 형태로 만든다.
+
+```json
+{
+  "sourceType": "page",
+  "pageTitle": "서비스 기획",
+  "blocks": [
+    {
+      "id": "block-id-1",
+      "type": "heading_1",
+      "text": "문제 정의",
+      "children": []
+    },
+    {
+      "id": "block-id-2",
+      "type": "paragraph",
+      "text": "사용자는 Notion에 흩어진 내용을 한눈에 파악하기 어렵다.",
+      "children": []
+    },
+    {
+      "id": "block-id-3",
+      "type": "bulleted_list_item",
+      "text": "핵심 요약 필요",
+      "children": []
+    }
+  ]
+}
+```
+
+DB는 아래 형태로 만든다.
+
+```json
+{
+  "sourceType": "data_source",
+  "dataSourceTitle": "프로젝트 목록",
+  "items": [
+    {
+      "pageId": "page-id-1",
+      "title": "Notion 연동",
+      "properties": {
+        "Status": "In Progress",
+        "Owner": "홍길동"
+      },
+      "blocks": []
+    }
+  ]
+}
+```
+
+**9. 긴 데이터 처리 정책**
+
+짧은 데이터:
+
+```text
+정규화된 Notion 데이터를 한 번에 OpenAI API에 전달
+```
+
+긴 데이터:
+
+```text
+1. heading 기준으로 섹션 분리
+2. 섹션별 요약 생성
+3. 섹션 요약들을 다시 OpenAI에 전달
+4. 최종 화면용 JSON 생성
+```
+
+긴 데이터 판단 기준 MVP:
+
+```text
+- 정규화 텍스트가 20,000자 이하: 단일 호출
+- 20,000자 초과: 섹션 분할 요약
+```
+
+**10. OpenAI 프롬프트**
+
+System prompt:
+
+```text
+너는 Notion 데이터를 웹 화면 표시용 JSON으로 구조화하는 정보 구조화 엔진이다.
+
+규칙:
+- 원문에 없는 내용을 만들지 않는다.
+- 모든 출력은 한국어로 작성한다.
+- 프론트엔드가 바로 렌더링할 수 있는 JSON만 출력한다.
+- 중복 내용은 합친다.
+- 긴 문단은 짧고 명확하게 요약한다.
+- 원문 근거가 부족한 추론은 assumptions에 넣는다.
+```
+
+User prompt:
+
+```text
+아래 Notion 데이터를 분석해서 화면 표시용 JSON으로 변환해라.
+
+요구사항:
+- 한 줄 요약 생성
+- 핵심 카드 3~6개 생성
+- 섹션별 요약 생성
+- 마인드맵 nodes/edges 생성
+- 키워드 추출
+- JSON 외의 텍스트는 출력하지 않기
+
+출력 JSON 형식:
+{
+  "title": string,
+  "oneLineSummary": string,
+  "summaryCards": [
+    {
+      "title": string,
+      "description": string,
+      "priority": "high" | "medium" | "low"
+    }
+  ],
+  "sections": [
+    {
+      "heading": string,
+      "summary": string,
+      "bullets": string[]
+    }
+  ],
+  "mindmap": {
+    "nodes": [
+      {
+        "id": string,
+        "label": string,
+        "type": "root" | "topic" | "detail"
+      }
+    ],
+    "edges": [
+      {
+        "from": string,
+        "to": string,
+        "label": string
+      }
+    ]
+  },
+  "keywords": string[],
+  "assumptions": string[]
+}
+
+NOTION_DATA:
+{{normalizedNotionData}}
+```
+
+**11. API 설계**
+
+분석 요청:
+
+```http
+POST /api/notion/analyze
+```
+
+Request:
+
+```json
+{
+  "sourceType": "page",
+  "pageId": "b55c9c91-384d-452b-81db-d1ef79372b75"
+}
+```
+
+또는:
+
+```json
+{
+  "sourceType": "data_source",
+  "dataSourceId": "d9824bdc-8445-4327-be8b-5b47500af6ce",
+  "limit": 20,
+  "includePageContent": false
+}
+```
+
+Response:
+
+```json
+{
+  "analysisId": "analysis_123",
+  "status": "processing"
+}
+```
+
+분석 상태 조회:
+
+```http
+GET /api/analyses/{analysisId}/status
+```
+
+Response:
+
+```json
+{
+  "analysisId": "analysis_123",
+  "status": "completed"
+}
+```
+
+화면 표시 데이터 조회:
+
+```http
+GET /api/analyses/{analysisId}/view
+```
+
+Response:
+
+```json
+{
+  "title": "서비스 기획",
+  "oneLineSummary": "Notion 데이터를 가져와 핵심 내용을 구조화해 보여주는 서비스입니다.",
+  "summaryCards": [
+    {
+      "title": "핵심 목표",
+      "description": "Notion 원문을 읽기 쉬운 화면 구조로 변환합니다.",
+      "priority": "high"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "문제 정의",
+      "summary": "사용자는 긴 Notion 문서를 한눈에 이해하기 어렵습니다.",
+      "bullets": [
+        "핵심 내용 파악이 느림",
+        "문서 구조가 복잡할 수 있음",
+        "시각적 요약이 필요함"
+      ]
+    }
+  ],
+  "mindmap": {
+    "nodes": [
+      {
+        "id": "root",
+        "label": "서비스 기획",
+        "type": "root"
+      },
+      {
+        "id": "problem",
+        "label": "문제 정의",
+        "type": "topic"
+      }
+    ],
+    "edges": [
+      {
+        "from": "root",
+        "to": "problem",
+        "label": "포함"
+      }
+    ]
+  },
+  "keywords": ["Notion API", "OpenAI API", "요약", "마인드맵"],
+  "assumptions": []
+}
+```
+
+**12. 상태값**
+
+```text
+processing
+completed
+failed
+```
+
+failed response:
+
+```json
+{
+  "analysisId": "analysis_123",
+  "status": "failed",
+  "error": {
+    "code": "NOTION_ACCESS_DENIED",
+    "message": "Notion 페이지에 connection 접근 권한이 없습니다."
+  }
+}
+```
+
+**13. 에러 코드**
+
+```text
+NOTION_ACCESS_DENIED
+NOTION_PAGE_NOT_FOUND
+NOTION_DATA_SOURCE_NOT_FOUND
+NOTION_RATE_LIMITED
+OPENAI_REQUEST_FAILED
+OPENAI_INVALID_JSON
+ANALYSIS_NOT_FOUND
+```
+
+**14. 프론트 화면 구성**
+
+상단:
+
+- 제목
+- 한 줄 요약
+- 키워드
+
+본문:
+
+- summaryCards 카드 영역
+- sections 상세 요약 영역
+- mindmap 시각화 영역
+
+마인드맵 렌더링 후보:
+
+- React Flow
+- Cytoscape.js
+- Mermaid
+
+이미지 저장이 필요하면:
+
+- React Flow 또는 HTML 영역 렌더링
+- `html-to-image`로 PNG export
+
+**15. 성공 기준**
+
+- Notion pageId 입력 시 페이지 속성과 본문 블록을 가져온다.
+- `has_children` 블록을 재귀적으로 가져온다.
+- Notion 원본 JSON이 아닌 정규화된 데이터만 OpenAI에 전달한다.
+- 짧은 문서는 단일 OpenAI 호출로 화면용 JSON을 만든다.
+- 긴 문서는 섹션별 요약 후 최종 JSON을 만든다.
+- 프론트엔드는 `/api/analyses/{analysisId}/view` 응답만으로 화면을 렌더링할 수 있다.
+
+**16. 개발 순서**
+
+1. Notion Internal Connection 생성
+2. Notion token 환경변수 설정
+3. 페이지/DB에 connection 추가
+4. `pages.retrieve` 테스트
+5. `blocks.children.list` 재귀 수집 구현
+6. block 정규화 구현
+7. OpenAI 프롬프트 연결
+8. 화면용 JSON schema 고정
+9. 분석 요청/status/view API 구현
+10. 프론트에서 카드/섹션/마인드맵 렌더링
+
+**17. MVP 결론**
+
+이 제품의 핵심은 “Notion 내용을 OpenAI에 그냥 던지는 것”이 아니다.
+
+정확한 구조는 다음이다.
+
+```text
+Notion API로 원본 수집
+→ 서버에서 필요한 텍스트와 계층만 정규화
+→ OpenAI API로 화면용 JSON 생성
+→ 프론트에서 그대로 렌더링
+```
+
+이렇게 만들면 나중에 카드뷰, 마인드맵, 타임라인, 요약 리포트 등 화면 형태가 바뀌어도 Notion 연동과 AI 정리 파이프라인은 그대로 재사용할 수 있다.
