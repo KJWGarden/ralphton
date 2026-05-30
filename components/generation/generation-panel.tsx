@@ -163,8 +163,8 @@ export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
             <input
               type="checkbox"
               className="h-5 w-5 rounded border-input"
-              checked={useImage || format === "image" || format === "sns_cards"}
-              disabled={format === "image" || format === "sns_cards"}
+              checked={useImage || format === "image"}
+              disabled={format === "image"}
               onChange={(event) => setUseImage(event.target.checked)}
             />
           </label>

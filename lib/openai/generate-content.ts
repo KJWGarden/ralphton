@@ -105,7 +105,7 @@ export async function generateImageAsset(
   request: GenerationRequestInput,
   content: GenerationContent,
 ): Promise<GenerationAsset | null> {
-  if (!request.useImage && request.format !== "image" && request.format !== "sns_cards") {
+  if (!request.useImage && request.format !== "image") {
     return null;
   }
 
