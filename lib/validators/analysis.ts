@@ -60,5 +60,93 @@ export const analysisViewSchema = z.object({
   assumptions: z.array(z.string()),
 });
 
+export const analysisViewJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "title",
+    "oneLineSummary",
+    "summaryCards",
+    "sections",
+    "mindmap",
+    "keywords",
+    "assumptions",
+  ],
+  properties: {
+    title: { type: "string" },
+    oneLineSummary: { type: "string" },
+    summaryCards: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "description", "priority"],
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["high", "medium", "low"] },
+        },
+      },
+    },
+    sections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["heading", "summary", "bullets"],
+        properties: {
+          heading: { type: "string" },
+          summary: { type: "string" },
+          bullets: {
+            type: "array",
+            items: { type: "string" },
+          },
+        },
+      },
+    },
+    mindmap: {
+      type: "object",
+      additionalProperties: false,
+      required: ["nodes", "edges"],
+      properties: {
+        nodes: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["id", "label", "type"],
+            properties: {
+              id: { type: "string" },
+              label: { type: "string" },
+              type: { type: "string", enum: ["root", "topic", "detail"] },
+            },
+          },
+        },
+        edges: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["from", "to", "label"],
+            properties: {
+              from: { type: "string" },
+              to: { type: "string" },
+              label: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    keywords: {
+      type: "array",
+      items: { type: "string" },
+    },
+    assumptions: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+} as const;
+
 export type AnalyzeRequestInput = z.infer<typeof analyzeRequestSchema>;
 export type AnalysisViewInput = z.infer<typeof analysisViewSchema>;

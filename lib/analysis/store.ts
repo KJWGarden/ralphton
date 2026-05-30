@@ -1,33 +1,56 @@
 import { randomUUID } from "crypto";
-import type { AnalysisStatusResponse, AnalysisViewResponse } from "@/types/analysis";
+import type { AnalysisStatus, AnalysisStatusResponse, AnalysisViewResponse, ApiError } from "@/types/analysis";
+import { createApiError } from "@/lib/analysis/errors";
+import { OpenAiAnalysisError } from "@/lib/openai/analyze";
 import type { AnalyzeRequestInput } from "@/lib/validators/analysis";
-import { createMockAnalysisView } from "./mock-data";
+import { runAnalysisPipeline } from "./pipeline";
 
 type AnalysisRecord = {
-  status: "completed";
-  view: AnalysisViewResponse;
+  status: AnalysisStatus;
+  view?: AnalysisViewResponse;
+  error?: ApiError;
   createdAt: string;
+  updatedAt: string;
 };
 
 const analyses = new Map<string, AnalysisRecord>();
 
-function getSourceLabel(input: AnalyzeRequestInput) {
-  return input.sourceType === "page" ? input.pageId : input.dataSourceId;
-}
-
-export function createAnalysis(input: AnalyzeRequestInput) {
+export async function createAnalysis(input: AnalyzeRequestInput) {
   const analysisId = `analysis_${randomUUID()}`;
-  const view = createMockAnalysisView(getSourceLabel(input));
+  const timestamp = new Date().toISOString();
 
   analyses.set(analysisId, {
-    status: "completed",
-    createdAt: new Date().toISOString(),
-    view: {
-      analysisId,
-      status: "completed",
-      ...view,
-    },
+    status: "processing",
+    createdAt: timestamp,
+    updatedAt: timestamp,
   });
+
+  try {
+    const view = await runAnalysisPipeline(input);
+
+    analyses.set(analysisId, {
+      status: "completed",
+      createdAt: timestamp,
+      updatedAt: new Date().toISOString(),
+      view: {
+        analysisId,
+        status: "completed",
+        ...view,
+      },
+    });
+  } catch (error) {
+    const apiError =
+      error instanceof OpenAiAnalysisError
+        ? createApiError(error.code, error.message)
+        : createApiError("OPENAI_REQUEST_FAILED");
+
+    analyses.set(analysisId, {
+      status: "failed",
+      createdAt: timestamp,
+      updatedAt: new Date().toISOString(),
+      error: apiError,
+    });
+  }
 
   return {
     analysisId,
@@ -45,6 +68,7 @@ export function getAnalysisStatus(analysisId: string): AnalysisStatusResponse | 
   return {
     analysisId,
     status: analysis.status,
+    error: analysis.error,
   };
 }
 

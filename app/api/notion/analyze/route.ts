@@ -10,5 +10,5 @@ export async function POST(request: Request) {
     return errorResponse(createApiError("VALIDATION_ERROR"), 422);
   }
 
-  return Response.json(createAnalysis(parsed.data));
+  return Response.json(await createAnalysis(parsed.data));
 }
