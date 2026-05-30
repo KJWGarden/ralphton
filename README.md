@@ -56,4 +56,4 @@ Secrets must stay in `.env.local`; that file is ignored by Git.
 
 The first screen automatically starts an analysis using `NEXT_PUBLIC_DEFAULT_NOTION_SOURCE_TYPE` and `NEXT_PUBLIC_DEFAULT_NOTION_SOURCE_ID`. Set those values to a connected Notion page or data source to show a real initial mindmap.
 
-Generation supports PPT drafts, Markdown documentation, SNS card news, and image concepts. Image generation uses `OPENAI_IMAGE_MODEL`, which defaults to `gpt-image-2`.
+Generation supports downloadable PPTX slide decks, Markdown documentation drafts, SNS card news, and image concepts. Image generation uses `OPENAI_IMAGE_MODEL`, which defaults to `gpt-image-2`.

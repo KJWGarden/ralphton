@@ -12,7 +12,7 @@ export const generationFormats: Array<{
   {
     value: "ppt",
     label: "PPT",
-    description: "Presentation outline with slide bullets and speaker notes.",
+    description: "Downloadable slide deck with bullets and speaker notes.",
   },
   {
     value: "markdown",

@@ -41,7 +41,7 @@ function createGenerationPrompt(request: GenerationRequestInput, nodes: MindmapN
     "Rules:",
     "- Keep the output grounded in the provided nodes.",
     "- Return all fields in the JSON schema, using empty arrays or empty strings when a field does not apply.",
-    "- For PPT, create 5-8 slides.",
+    "- For PPT, create 5-8 real presentation slides with concise titles, audience-ready bullets, and speaker notes. Do not describe an image of a slide deck.",
     "- For Markdown, create a complete bodyMarkdown document.",
     "- For SNS cards, create 5-8 cards with image prompts.",
     "- For image, create one detailed imagePrompt.",

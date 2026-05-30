@@ -44,14 +44,27 @@ export type GenerationContent = {
   downloadOptions: string[];
 };
 
-export type GenerationAsset = {
-  type: "image";
-  model: string;
+type BaseGenerationAsset = {
   mimeType: string;
   dataUrl?: string;
   url?: string;
+  filename?: string;
+};
+
+export type ImageGenerationAsset = BaseGenerationAsset & {
+  type: "image";
+  model: string;
   prompt: string;
 };
+
+export type PptxGenerationAsset = BaseGenerationAsset & {
+  type: "pptx";
+  mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  dataUrl: string;
+  filename: string;
+};
+
+export type GenerationAsset = ImageGenerationAsset | PptxGenerationAsset;
 
 export type GenerationResponse = {
   generationId: string;

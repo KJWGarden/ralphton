@@ -2,6 +2,8 @@ import { createGeneration } from "@/lib/generation/store";
 import { createApiError, errorResponse } from "@/lib/analysis/errors";
 import { generationRequestSchema } from "@/lib/validators/generation";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = generationRequestSchema.safeParse(body);

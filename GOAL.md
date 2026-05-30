@@ -92,12 +92,20 @@ primary_docs:
 
 선택된 마인드맵 노드를 기반으로 다음 형식의 draft를 생성한다.
 
-- `ppt`: 발표용 slide outline, bullets, speaker notes
+- `ppt`: 실제 발표용 PPTX slide deck, bullets, speaker notes
 - `markdown`: 문서화용 Markdown
 - `sns_cards`: SNS 카드뉴스 copy와 image prompt
 - `image`: GPT Image 2 기반 이미지 asset
 
 초기 노드가 명시적으로 선택되지 않아도 focused node 또는 source node를 자동으로 generation 대상에 포함하도록 수정했다.
+
+`ppt` 형식은 draft JSON만 반환하지 않고, `pptxgenjs`로 실제 `.pptx` 파일 asset을 생성해 다운로드할 수 있도록 했다. 이미지 생성 toggle은 PPT 파일 생성이 아니라 별도의 시각 자료 생성 옵션으로 유지한다.
+
+### 6.1 Mindmap Preview Sizing Fix
+
+- 마인드맵 canvas가 작은 preview처럼 보이던 문제를 수정했다.
+- Mindmap preview를 full-width section으로 분리하고 canvas에 안정적인 height/width를 부여했다.
+- 상세 패널과 relationship 영역은 긴 텍스트가 layout을 밀지 않도록 `min-w-0`, wrapping, scrolling을 보강했다.
 
 ### 7. Image Generation Behavior
 
@@ -143,7 +151,9 @@ https://www.notion.so/Codex-Community-Meetup-Busan-Mini-Ralphthon-with-Codex-Goa
 - Markdown draft 생성 성공
 - SNS card draft 생성 성공
 - GPT Image 2 이미지 asset 생성 성공
-- 초기 선택이 없어도 `Create draft` 버튼 활성화 확인
+- 실제 PPTX slide deck asset 생성 성공
+- 초기 선택이 없어도 `Generate` 버튼 활성화 확인
+- 마인드맵 preview가 넓은 canvas로 표시되는 것 확인
 
 ## Commits
 
@@ -154,17 +164,20 @@ https://www.notion.so/Codex-Community-Meetup-Busan-Mini-Ralphthon-with-Codex-Goa
 - `867a86e` Add initial mindmap and generation workflow
 - `c32eacd` Make SNS image generation toggleable
 - `f1c9643` Fix generation button activation
+- `9f29979` Add goal summary and Notion URL parsing
+- `7c46354` Fix mindmap preview sizing
 
 ## Current Known Gaps
 
-- 결과물 export 파일 생성은 아직 draft JSON 단계이며, 실제 `pptx`, `pdf`, `md`, `png` 다운로드 구현이 남아 있다.
+- PPT는 실제 `.pptx` 다운로드까지 구현했다.
+- `pdf`, `md`, `png` export 파일 생성은 아직 draft JSON 또는 이미지 asset 단계이며 후속 구현이 남아 있다.
 - 생성 결과를 서버 재시작 후에도 유지하는 persistence layer가 아직 없다.
 - Notion OAuth, 다중 사용자, 결제, 관리자 콘솔은 MVP 제외 범위로 남겨두었다.
 - 대규모 Notion data source의 graph clustering과 LOD 최적화는 후속 작업이다.
 
 ## Next Goals
 
-1. 실제 export API 구현: `pptx`, `md`, `png`, `pdf`.
+1. 실제 export API 확장: `md`, `png`, `pdf`.
 2. 생성 결과 리뷰/수정 UI 강화.
 3. Notion URL 입력 UX polish: 붙여넣기 즉시 ID preview 표시.
 4. 분석/생성 결과 persistence 추가.

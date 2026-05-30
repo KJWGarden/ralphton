@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, ImageIcon, Loader2, Presentation, Rows3, WandSparkles } from "lucide-react";
+import { Download, FileText, ImageIcon, Loader2, Presentation, Rows3, WandSparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,9 @@ const formatIcons: Record<GenerationFormat, React.ReactNode> = {
 };
 
 function GenerationPreview({ generation }: { generation: GenerationResponse }) {
+  const imageAsset = generation.assets.find((asset) => asset.type === "image");
+  const downloadableAssets = generation.assets.filter((asset) => asset.dataUrl || asset.url);
+
   return (
     <div className="space-y-4 rounded-md border p-4">
       <div className="space-y-1">
@@ -58,10 +61,28 @@ function GenerationPreview({ generation }: { generation: GenerationResponse }) {
         </div>
       ) : null}
 
-      {generation.assets[0]?.dataUrl || generation.assets[0]?.url ? (
+      {downloadableAssets.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {downloadableAssets.map((asset, index) => {
+            const href = asset.dataUrl ?? asset.url;
+            const label = asset.type === "pptx" ? "Download PPTX" : "Download image";
+
+            return href ? (
+              <Button key={`${asset.type}-${index}`} asChild variant="outline" size="sm" className="gap-2">
+                <a href={href} download={"filename" in asset ? asset.filename : undefined}>
+                  <Download className="h-4 w-4" />
+                  {label}
+                </a>
+              </Button>
+            ) : null;
+          })}
+        </div>
+      ) : null}
+
+      {imageAsset?.dataUrl || imageAsset?.url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={generation.assets[0].dataUrl ?? generation.assets[0].url}
+          src={imageAsset.dataUrl ?? imageAsset.url}
           alt={generation.content.title}
           className="aspect-square w-full max-w-sm rounded-md border object-cover"
         />
@@ -105,7 +126,7 @@ export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
       {
         onSuccess: (response) => {
           setGeneration(response);
-          toast.success("Generation draft is ready");
+          toast.success("Generation is ready");
         },
         onError: () => {
           toast.error("Generation failed");
@@ -120,7 +141,7 @@ export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle>Generate</CardTitle>
-            <CardDescription>PPT, MD, SNS cards, or image from selected nodes</CardDescription>
+            <CardDescription>PPTX deck, MD, SNS cards, or image from selected nodes</CardDescription>
           </div>
           <Badge variant="secondary">{selectedNodes.length} selected</Badge>
         </div>
@@ -167,8 +188,8 @@ export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
 
           <label className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
             <span>
-              <span className="block font-medium">Image generation</span>
-              <span className="text-muted-foreground">Uses GPT Image 2 when enabled</span>
+              <span className="block font-medium">Visual asset generation</span>
+              <span className="text-muted-foreground">Adds a GPT Image 2 image; PPT still exports PPTX</span>
             </span>
             <input
               type="checkbox"
@@ -208,7 +229,7 @@ export function GenerationPanel({ analysisId, nodes }: GenerationPanelProps) {
 
         <Button className="w-full gap-2" disabled={activeNodeIds.length === 0 || createGeneration.isPending} onClick={submit}>
           {createGeneration.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
-          Create draft
+          Generate
         </Button>
 
         {generation ? <GenerationPreview generation={generation} /> : null}

@@ -1,9 +1,10 @@
 import { randomUUID } from "crypto";
 import { getAnalysisView } from "@/lib/analysis/store";
 import { createApiError } from "@/lib/analysis/errors";
+import { generatePptxAsset } from "@/lib/generation/pptx";
 import { generateContentDraft, generateImageAsset, OpenAiGenerationError } from "@/lib/openai/generate-content";
 import type { ApiError } from "@/types/analysis";
-import type { GenerationResponse } from "@/types/generation";
+import type { GenerationAsset, GenerationResponse } from "@/types/generation";
 import type { GenerationRequestInput } from "@/lib/validators/generation";
 
 const generations = new Map<string, GenerationResponse>();
@@ -76,7 +77,14 @@ export async function createGeneration(request: GenerationRequestInput): Promise
       ? await generateContentDraft(request, sourceNodes)
       : fallbackContent(request, sourceNodes[0].label);
     content.downloadOptions = downloadOptionsForFormat(request.format);
+    const assets: GenerationAsset[] = [];
+    if (request.format === "ppt") {
+      assets.push(await generatePptxAsset(content));
+    }
     const imageAsset = await generateImageAsset(request, content);
+    if (imageAsset) {
+      assets.push(imageAsset);
+    }
     const generationId = `generation_${randomUUID()}`;
     const response: GenerationResponse = {
       generationId,
@@ -84,7 +92,7 @@ export async function createGeneration(request: GenerationRequestInput): Promise
       format: request.format,
       sourceNodes,
       content,
-      assets: imageAsset ? [imageAsset] : [],
+      assets,
     };
 
     generations.set(generationId, response);
