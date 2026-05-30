@@ -78,6 +78,7 @@ export function MindmapCanvas({ nodes, edges }: MindmapCanvasProps) {
 
   return (
     <Canvas
+      className="h-full w-full"
       camera={{ position: [0, 14, 16], fov: 55 }}
       gl={{ alpha: true, antialias: true }}
     >

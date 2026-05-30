@@ -68,27 +68,26 @@ export function AnalysisResult({ loading, hasAnalysis, result }: AnalysisResultP
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-        <MindmapPreview nodes={result.mindmap.nodes} edges={result.mindmap.edges} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Sections</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {result.sections.map((section) => (
-              <div key={section.heading} className="space-y-2">
-                <h3 className="font-medium">{section.heading}</h3>
-                <p className="text-sm text-muted-foreground">{section.summary}</p>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {section.bullets.map((bullet) => (
-                    <li key={bullet}>{bullet}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      <MindmapPreview nodes={result.mindmap.nodes} edges={result.mindmap.edges} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sections</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-5 lg:grid-cols-3">
+          {result.sections.map((section) => (
+            <div key={section.heading} className="min-w-0 space-y-2">
+              <h3 className="font-medium">{section.heading}</h3>
+              <p className="text-sm text-muted-foreground">{section.summary}</p>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                {section.bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <GenerationPanel analysisId={result.analysisId} nodes={result.mindmap.nodes} />
     </section>
