@@ -12,7 +12,7 @@ import type { AnalyzeRequest } from "@/types/analysis";
 
 const formSchema = z.object({
   sourceType: z.enum(["page", "data_source"]),
-  sourceId: z.string().trim().min(8, "Enter a Notion page or data source ID."),
+  sourceId: z.string().trim().min(8, "Enter a Notion page URL or ID.").max(2000),
   includePageContent: z.boolean().default(false),
 });
 
@@ -71,11 +71,11 @@ export function NotionSourceForm({ pending, onSubmit }: NotionSourceFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="sourceId">
-          {sourceType === "page" ? "Page ID" : "Data source ID"}
+          {sourceType === "page" ? "Page URL or ID" : "Data source URL or ID"}
         </Label>
         <Input
           id="sourceId"
-          placeholder="Paste a Notion ID"
+          placeholder="Paste a Notion URL or ID"
           aria-invalid={Boolean(errors.sourceId)}
           {...register("sourceId")}
         />

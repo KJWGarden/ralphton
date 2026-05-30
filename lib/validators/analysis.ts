@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { extractNotionId } from "@/lib/notion/ids";
 
 export const sourceTypeSchema = z.enum(["page", "data_source"]);
 
@@ -6,7 +7,21 @@ const notionIdSchema = z
   .string()
   .trim()
   .min(8, "Notion ID is required")
-  .max(120, "Notion ID is too long");
+  .max(2000, "Notion URL or ID is too long")
+  .transform((value, context) => {
+    const notionId = extractNotionId(value);
+
+    if (!notionId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a valid Notion URL or ID.",
+      });
+
+      return z.NEVER;
+    }
+
+    return notionId;
+  });
 
 export const analyzeRequestSchema = z.discriminatedUnion("sourceType", [
   z.object({
